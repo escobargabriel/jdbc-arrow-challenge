@@ -1,6 +1,6 @@
+import static org.apache.arrow.vector.types.Types.MinorType.FLOAT4;
 import static org.apache.arrow.vector.types.Types.MinorType.INT;
 import static org.apache.arrow.vector.types.Types.MinorType.VARCHAR;
-import static org.apache.arrow.vector.types.Types.MinorType.FLOAT4;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -22,6 +22,7 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 public class DataBaseInteracting {
   private Connection connection;
+  static final RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
   {
     try {
@@ -35,14 +36,14 @@ public class DataBaseInteracting {
     List<Person> listUser = new ArrayList<>();
     String sql = "SELECT * FROM personalData";
     Person person = null;
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql);){
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql);) {
       ResultSet resultSet = preparedStatement.executeQuery();
-      while(resultSet.next()){
+      while (resultSet.next()) {
         person = new Person();
-        person.setId(resultSet.getInt(1));
-        person.setName(resultSet.getString("Name"));
-        person.setNumberrange(resultSet.getInt("Numberrange"));
-        person.setCurrency(resultSet.getFloat("Currency"));
+        person.setId(resultSet.getInt("id"));
+        person.setName(resultSet.getString("name"));
+        person.setNumberrange(resultSet.getInt("numberrange"));
+        person.setCurrency(resultSet.getFloat("currency"));
         listUser.add(person);
         System.out.println(person);
       }
@@ -51,28 +52,27 @@ public class DataBaseInteracting {
     }
     return listUser;
   }
+
   public VectorSchemaRoot dataBaseToVectorSchemaRoot(List<Person> list) {
-    final RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
     int rowCount = 0;
     Schema schema = new Schema(Arrays.asList(
-        Field.nullable("id",          INT.getType()),
-        Field.nullable("name",        VARCHAR.getType()),
+        Field.nullable("id", INT.getType()),
+        Field.nullable("name", VARCHAR.getType()),
         Field.nullable("numberrange", INT.getType()),
-        Field.nullable("currency",    FLOAT4.getType()))
+        Field.nullable("currency", FLOAT4.getType()))
     );
     VectorSchemaRoot vectorSchemaRoot = VectorSchemaRoot.create(schema, allocator);
-    IntVector     id        = (IntVector) vectorSchemaRoot.getVector("id");
-    VarCharVector name      = (VarCharVector) vectorSchemaRoot.getVector("name");
-    IntVector   numberrange = (IntVector) vectorSchemaRoot.getVector("numberrange");
-    Float4Vector  currency  = (Float4Vector) vectorSchemaRoot.getVector("currency");
-
-      for(Person p: list){
-        id.setSafe(rowCount, p.getId());
-        name.setSafe(rowCount, p.getName().getBytes(StandardCharsets.UTF_8));
-        numberrange.setSafe(rowCount, p.getNumberrange());
-        currency.setSafe(rowCount, p.getCurrency());
-        ++rowCount;
-      }
+    IntVector id = (IntVector) vectorSchemaRoot.getVector("id");
+    VarCharVector name = (VarCharVector) vectorSchemaRoot.getVector("name");
+    IntVector numberrange = (IntVector) vectorSchemaRoot.getVector("numberrange");
+    Float4Vector currency = (Float4Vector) vectorSchemaRoot.getVector("currency");
+    for (Person p : list) {
+      id.setSafe(rowCount, p.getId());
+      name.setSafe(rowCount, p.getName().getBytes(StandardCharsets.UTF_8));
+      numberrange.setSafe(rowCount, p.getNumberrange());
+      currency.setSafe(rowCount, p.getCurrency());
+      ++rowCount;
+    }
     vectorSchemaRoot.setRowCount(rowCount);
     return vectorSchemaRoot;
   }
