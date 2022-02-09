@@ -21,34 +21,25 @@ import org.apache.arrow.vector.types.pojo.Schema;
 
 
 public class DataBaseInteracting {
-  private Connection connection;
   static final RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
+  private Connection connection = MakeConnection.getConnection();
 
-  {
-    try {
-      connection = MakeConnection.getConnection();
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
+  public DataBaseInteracting() throws SQLException {
   }
 
-  public List<Person> searchForAll() {
+  public List<Person> searchForAll() throws SQLException {
     List<Person> listUser = new ArrayList<>();
     String sql = "SELECT * FROM personalData";
-    Person person = null;
-    try (PreparedStatement preparedStatement = connection.prepareStatement(sql);) {
-      ResultSet resultSet = preparedStatement.executeQuery();
+    try (PreparedStatement preparedStatement = connection.prepareStatement(sql);
+         ResultSet resultSet = preparedStatement.executeQuery();) {
       while (resultSet.next()) {
-        person = new Person();
+        Person person = new Person();
         person.setId(resultSet.getInt("id"));
         person.setName(resultSet.getString("name"));
         person.setNumberrange(resultSet.getInt("numberrange"));
         person.setCurrency(resultSet.getFloat("currency"));
         listUser.add(person);
-        System.out.println(person);
       }
-    } catch (SQLException e) {
-      e.printStackTrace();
     }
     return listUser;
   }
